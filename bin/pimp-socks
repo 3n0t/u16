@@ -1,0 +1,78 @@
+#!/bin/bash
+# pimptools :: socks v0.1.0
+
+set -e
+set -u
+set -o pipefail
+
+usage() {
+cat << EOF
+
+-=[ pimptools :: socks v0.1.0 ]=-
+
+SOCKS proxy via SSH tunnel
+
+usage: ${0##*/} [option]... user@host
+
+    -i  --identity        specify the identity file (private key)
+    -p  --port            specify the port number (default: 1080)
+    -h  --help            display help and exit
+
+EOF
+}
+
+info() {
+	echo "[INFO] $1"
+}
+
+error() {
+	echo "[ERROR] $1"
+	exit 1
+}
+
+runsocks() {
+	info "connecting to server: $USERHOST"
+	if [[ -z ${IDENTITY-} ]]; then
+		ssh -fN -D $PORT $USERHOST
+	else
+		ssh -fN -i $IDENTITY -D $PORT $USERHOST
+	fi
+	info "SOCKS5 proxy is running on localhost:$PORT"
+	exit 0
+}
+
+if [[ $# -eq 0 ]]; then
+	usage
+fi
+
+PORT=1080
+
+while [[ $# > 0 ]]; do
+	arg=$1
+	case $arg in
+		-h|--help)
+			usage
+		;;
+		-i|--identity)
+			IDENTITY=$2
+			shift 2
+		;;
+		-p|--port)
+			if ! [[ $2 =~ ^[0-9]+$ ]]; then
+				error "invalid port number"
+			else
+				PORT=$2
+			fi
+			shift 2
+		;;
+		*)
+			if [[ $arg == -* ]]; then
+				error "unsupported arguments"
+			else
+				USERHOST=$arg
+				runsocks
+			fi
+		;;
+	esac
+done
+

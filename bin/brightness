@@ -1,0 +1,21 @@
+#!/bin/bash
+
+set -e
+
+FILE=/sys/class/backlight/intel_backlight/brightness
+
+if [ ! -f $FILE ]; then
+    echo "Unsupported system"
+	exit 1
+fi
+
+CURRENT_BRIGHTNESS=$( <$FILE)
+
+if [[ $1 == +* ]] || [[ $1 == -* ]]; then
+	NEW_BRIGHTNESS=$(($CURRENT_BRIGHTNESS + $1))
+else
+	NEW_BRIGHTNESS=$1
+fi
+
+sudo sh -c "echo $NEW_BRIGHTNESS > $FILE"
+

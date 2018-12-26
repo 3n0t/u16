@@ -1,0 +1,258 @@
+#!/bin/bash
+# pimptools :: daemon v0.1.0
+
+set -e
+set -u
+set -o pipefail
+
+PROG=$0
+ARGS=("$@")
+POLLTIMEOUT=3
+
+usage() {
+cat << EOF
+
+-=[ pimptools :: daemon v0.1.0 ]=-
+
+run python script as daemon
+
+usage: ${0##*/} [option]... script
+
+    -r  --restart         restart daemon if running
+    -k  --kill            kill daemon if running
+    -i  --ignore-venv     ignore virtualenv
+    -h  --help            display help and exit
+
+EOF
+}
+
+info() {
+	echo "[INFO] $1"
+}
+
+error() {
+	echo "[ERROR] $1"
+	exit 1
+}
+
+parse_cli() {
+	while [[ ${#ARGS[@]} > 0 ]]; do
+		arg=${ARGS[0]}
+		case $arg in
+			-h|--help)
+				usage
+			;;
+			-r|--restart)
+				SIGNAL="restart"
+				ARGS=("${ARGS[@]:1}")
+			;;
+			-k|--kill)
+				SIGNAL="kill"
+				ARGS=("${ARGS[@]:1}")
+			;;
+			-i|--ignore-venv)
+				VENV=false
+				ARGS=("${ARGS[@]:1}")
+			;;
+			*)
+				if [[ $arg == -* ]]; then
+					usage
+				else
+					break
+				fi
+			;;
+		esac
+	done
+
+	if [[ ${#ARGS[@]} -eq 0 ]]; then
+		usage
+	else
+		PYPATH=${ARGS[0]}
+		ARGS=("${ARGS[@]:1}")
+	fi
+}
+
+activate_venv() {
+	set +u
+	for venvdir in .venv .env .pyenv venv env pyenv; do
+		if [[ -f $venvdir/bin/activate ]]; then
+			info "activating the virtualenv: $venvdir/bin/activate"
+			source "$venvdir/bin/activate"
+			break
+		fi
+	done
+	set -u
+}
+
+pid2path() {
+	if kill -0 $PID > /dev/null 2>&1; then
+		local pcmd="$(ps -p $PID -o command=)"
+		local pcmd_arr=($pcmd)
+		if (( ${#pcmd_arr[@]} > 1 )) && [[ ${pcmd_arr[0]} == python* ]]; then
+			local pypath=${pcmd_arr[1]}
+			if [[ $pypath == /* ]]; then
+				echo "$pypath"
+			else
+				local pcwd="$(readlink -e /proc/$PID/cwd)"
+				echo "$(readlink -m $pcwd/$pypath)"
+			fi
+		fi
+	fi
+}
+
+path2pid() {
+	local path="$(ps -f -C python | grep $PYABSPATH)"
+	if ! [[ -z $path ]]; then
+		local path_arr=($path)
+		echo "${path_arr[1]}"
+	fi
+}
+
+pid2args() {
+	if kill -0 $PID > /dev/null 2>&1; then
+		local pcmd="$(ps -p $PID -o command=)"
+		local pcmd_arr=($pcmd)
+		if (( ${#pcmd_arr[@]} > 1 )) && [[ ${pcmd_arr[0]} == python* ]]; then
+			echo "${pcmd_arr[@]:2}"
+		fi
+	fi
+}
+
+is_alive() {
+	if [[ $(pid2path) == $PYABSPATH ]]; then
+		echo "yes"
+	else
+		echo "no"
+	fi
+}
+
+wait_proc() {
+	if [[ $# -eq 0 ]]; then
+		# wait forever
+		while [[ $(is_alive) == "yes" ]]; do
+			sleep "$POLLTIMEOUT"
+		done
+	else
+		# wait for N seconds
+		for ((n=0;n<$1;n++)); do
+			sleep 1
+			if [[ $(is_alive) == "no" ]]; then
+				break
+			fi
+		done
+	fi
+}
+
+kill_proc() {
+	if [[ $(is_alive) == "yes" ]]; then
+		info "killing the daemon [PID: $PID]"
+		# send terminal interrupt signal (ctrl+c)
+		# kill -2 -$PID
+		# wait_proc 10
+		# soft kill
+		kill $PID
+		wait_proc 5
+		# hard kill
+		if [[ $(is_alive) == "yes" ]]; then
+			kill -9 $PID
+			wait_proc
+		fi
+		rm -f $PIDFILE
+		info "daemon is killed"
+	else
+		error "daemon is not running"
+		exit 4
+	fi
+}
+
+restart_proc() {
+	if [[ ${#ARGS[@]} -eq 0 ]]; then
+		ARGS=$(pid2args)
+	fi
+	kill_proc
+	info "restarting the daemon"
+	if $VENV; then
+		$PROG $PYPATH ${ARGS[@]-}
+	else
+		$PROG -i $PYPATH ${ARGS[@]-}
+	fi
+}
+
+cleanup() {
+	wait_proc
+	if [[ -f $PIDFILE && $PID == $(< $PIDFILE) ]]; then
+		rm -f $PIDFILE
+	fi
+}
+
+run() {
+	VENV=true
+	parse_cli
+	ROOTDIR=$(pwd)
+	export PYTHONPATH=$ROOTDIR
+	PYNAME="$(basename $PYPATH)"
+	PIDFILE="${PYNAME%.*}".pid
+	OUTFILE="${PYNAME%.*}".out
+	if [[ $PYPATH == /* ]]; then
+		PYABSPATH=$PYPATH
+	else
+		PYABSPATH="$(readlink -m $ROOTDIR/$PYPATH)"
+	fi
+	if ! [[ -f $PYABSPATH ]]; then
+		error "script is not found: $PYABSPATH"
+	fi
+	PID=$(path2pid)
+	if ! [[ -z $PID ]] && ! [[ -f $PIDFILE  ]]; then
+		error "unbound daemon (no PID-file) is already running [PID: $PID]"
+		exit 7
+	elif [[ -f $PIDFILE ]]; then
+		PID=$(< $PIDFILE)
+	fi
+	if [[ ${SIGNAL-} == "restart" ]]; then
+		restart_proc
+		exit 0
+	elif [[ ${SIGNAL-} == "kill" ]]; then
+		kill_proc
+		exit 0
+	elif ! [[ -z $PID ]] && [[ $(is_alive) == "yes" ]]; then
+		info "daemon is already running [PID: $PID]"
+		set +e
+		read -t 10 -p "restart the daemon (y/n)? " answer
+		if [[ $answer == "y" ]]; then
+			SIGNAL="restart"
+		else
+			if [[ -z $answer ]]; then
+				echo
+			fi
+			read -t 10 -p "kill the daemon (y/n)? " answer
+			if [[ -z $answer ]]; then
+				echo
+			elif [[ $answer == "y" ]]; then
+				SIGNAL="kill"
+			fi
+		fi
+		set -e
+		if [[ ${SIGNAL-} == "restart" ]]; then
+			restart_proc
+			exit 0
+		elif [[ ${SIGNAL-} == "kill" ]]; then
+			kill_proc
+			exit 0
+		else
+			exit 5
+		fi
+	else
+		if $VENV; then
+			activate_venv
+		fi
+		stdbuf -oL -eL python $PYABSPATH ${ARGS[@]-} </dev/null >$OUTFILE 2>&1 &
+		PID=$!
+		echo $PID > $PIDFILE
+		info "daemon is stared [PID: $PID]"
+		cleanup </dev/null >/dev/null 2>&1 &
+		disown -a
+		# trap "trap - SIGTERM && kill -- -$$" SIGINT SIGTERM EXIT
+	fi
+}
+
+run

@@ -1,0 +1,16 @@
+[/]
+foreground-color='rgb(229,198,168)'
+visible-name='u'
+scrollbar-policy='never'
+palette=['rgb(17,20,23)', 'rgb(200,65,52)', 'rgb(132,196,75)', 'rgb(244,174,46)', 'rgb(19,151,185)', 'rgb(208,98,60)', 'rgb(79,148,82)', 'rgb(229,197,169)', 'rgb(102,94,84)', 'rgb(255,100,89)', 'rgb(151,224,53)', 'rgb(223,213,97)', 'rgb(94,217,255)', 'rgb(255,145,104)', 'rgb(131,239,136)', 'rgb(246,246,236)']
+use-system-font=false
+use-transparent-background=false
+use-theme-colors=false
+font='Monospace 14'
+use-theme-transparency=false
+use-theme-background=false
+bold-color-same-as-fg=true
+bold-color='#f9f9f8f8f5f5'
+background-color='rgb(40,36,32)'
+background-transparency-percent=54
+audible-bell=true

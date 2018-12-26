@@ -1,0 +1,2 @@
+#!/bin/bash
+feh -. -x -B black $1

@@ -1,0 +1,59 @@
+#!/bin/bash
+# pimptools :: uptime v0.1.0
+
+set -e
+set -u
+set -o pipefail
+
+usage() {
+cat << EOF
+
+-=[ pimptools :: uptime v0.1.0 ]=-
+
+return the process (specified by PID) uptime
+
+usage: ${0##*/} [option]... PID
+
+    -s  --seconds         return uptime in seconds
+    -h  --help            display help and exit
+
+EOF
+}
+
+error() {
+	echo "[ERROR] $1"
+	exit 1
+}
+
+get_uptime() {
+	uptime=$(ps -p $1 -o ${ETIME-etime}=)
+	echo $uptime | sed "s/ //g"
+	exit 0
+}
+
+if [[ $# -eq 0 ]]; then
+	usage
+fi
+
+while [[ $# > 0 ]]; do
+	arg=$1
+	case $arg in
+		-h|--help)
+			usage
+		;;
+		-s|--seconds)
+			ETIME="etimes"
+			shift
+		;;
+		*)
+			if [[ $1 == -* ]]; then
+				error "unsupported arguments"
+			elif ! [[ $1 =~ ^[0-9]+$ ]]; then
+				error "invalid PID"
+			else
+				get_uptime $1
+			fi
+		;;
+	esac
+done
+

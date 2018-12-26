@@ -1,0 +1,44 @@
+#!/bin/bash
+# pimptools :: speed v0.1.0
+
+set -e
+set -u
+set -o pipefail
+
+usage() {
+cat << EOF
+
+-=[ pimptools :: speed v0.1.0 ]=-
+
+the internet speed test
+
+usage: ${0##*/}
+
+    -h  --help            display help and exit
+
+EOF
+}
+
+error() {
+	echo "[ERROR] $1"
+	exit 1
+}
+
+test_speed() {
+	wget -O /dev/null http://speedtest.wdc01.softlayer.com/downloads/test500.zip
+	exit 0
+}
+
+while [[ $# > 0 ]]; do
+	arg=$1
+	case $arg in
+		-h|--help)
+			usage
+		;;
+		*)
+			error "unsupported arguments"
+		;;
+	esac
+done
+
+test_speed
