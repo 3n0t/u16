@@ -1,6 +1,7 @@
 "*****************************************************************************
 "" Basic Setup
 "*****************************************************************************"
+
 "" Encoding
 set encoding=utf-8
 set fileencoding=utf-8
@@ -19,7 +20,7 @@ set softtabstop=4
 map <F2> :retab <CR> :wq! <CR>
 
 "" Map leader to ,
-let mapleader=','
+let mapleader='\'
 
 "" Enable hidden buffers
 set hidden
@@ -218,9 +219,6 @@ vmap > >gv
 vnoremap J :m '>+1<CR>gv=gv
 vnoremap K :m '<-2<CR>gv=gv
 
-"" Open current line on GitHub
-noremap ,o :!echo `git url`/blob/`git rev-parse --abbrev-ref HEAD`/%\#L<C-R>=line('.')<CR> \| xargs open<CR><CR>
-
 "" Custom configs
 
 " vim-python
@@ -237,29 +235,6 @@ if filereadable(expand("~/.vimrc.local"))
 endif
 
 ""
-set pastetoggle=<F10>
-nnoremap <C-y> "+y
-vnoremap <C-y> "+y
-nnoremap <C-p> "+gP
-vnoremap <C-p> "+gP
-
-imap jk <Esc>
-
-"nmap <S-j> <S-l>
-"nmap <S-k> <S-h>
-"vmap <S-j> <S-l>
-"vmap <S-k> <S-h>
-
-nmap <C-j> <C-f>
-nmap <C-k> <C-b>
-vmap <C-j> <C-f>
-vmap <C-k> <C-b>
-
-"nmap <C-w> o
-"nmap <C-e> O
-
-nmap q b
-
 set mouse=
 
 " set iskeyword-=_
@@ -269,3 +244,49 @@ autocmd BufNewFile,BufRead * setlocal formatoptions-=cro
 let g:loaded_tarPlugin = 1
 
 set shortmess+=A
+
+nnoremap x "_x
+nnoremap X "_X
+nnoremap d "_d
+nnoremap D "_D
+vnoremap d "_d
+
+if has('unnamedplus')
+  set clipboard=unnamed,unnamedplus
+  nnoremap <leader>d "+d
+  nnoremap <leader>D "+D
+  vnoremap <leader>d "+d
+else
+  set clipboard=unnamed
+  nnoremap <leader>d "*d
+  nnoremap <leader>D "*D
+  vnoremap <leader>d "*d
+endif
+
+nnoremap <C-a> ggVG
+nnoremap <C-x> x
+
+set pastetoggle=<F10>
+nnoremap <C-y> "+y
+vnoremap <C-y> "+y
+nnoremap <C-p> "+gP
+vnoremap <C-p> "+gP
+
+imap jk <Esc>
+
+nmap q b
+
+noremap h i
+nnoremap <S-h> <S-i>
+vnoremap <S-h> <S-i>
+
+noremap l l
+noremap k j
+noremap i k
+noremap j h
+
+nmap m <C-f>
+nmap , <C-b>
+vmap m <C-f>
+vmap , <C-b>
+
