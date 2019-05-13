@@ -245,12 +245,6 @@ let g:loaded_tarPlugin = 1
 
 set shortmess+=A
 
-nnoremap x "_x
-nnoremap X "_X
-nnoremap d "_d
-nnoremap D "_D
-vnoremap d "_d
-
 if has('unnamedplus')
   set clipboard=unnamed,unnamedplus
   nnoremap <leader>d "+d
