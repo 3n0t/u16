@@ -10,7 +10,7 @@ cat << EOF
 
 -=[ pimptools :: git v0.1.0 ]=-
 
-git (add > commit -m version > push) alias
+git (add > commit -m "seconds since Epoch" > push) alias
 
 usage: ${0##*/} [option]...
 
@@ -35,17 +35,10 @@ git_pacp() {
 		git pull
 	fi
 	git add --all .
-	git commit -a -m $1
+	git commit -a -m "$(date +%s)"
 	git push
 	exit 0
 }
-
-if [[ ! -f version ]]; then
-	error "version file not found"
-else
-	version_content=$(< version)
-	VERSION="${version_content%-*}"
-fi
 
 while [[ $# > 0 ]]; do
 	arg=$1
@@ -57,28 +50,10 @@ while [[ $# > 0 ]]; do
 			PULL=true
 			shift
 		;;
-		-v|--version)
-			if [[ $# -eq 1 ]]; then
-				info "current version: $VERSION"
-				read -p "new version: " new_version
-				if ! [[ -z $new_version ]]; then
-					VERSION=$new_version
-				fi
-			else
-				VERSION=$2
-				shift
-			fi
-			shift
-			if [[ $VERSION == -* ]]; then
-				error "unsupported version"
-			fi
-		;;
 		*)
 			usage
 		;;
 	esac
 done
 
-FULL_VERSION=$VERSION-"$(date -u +%y%m%d%H%M%S)"
-echo $FULL_VERSION > version
-git_pacp $FULL_VERSION
+git_pacp

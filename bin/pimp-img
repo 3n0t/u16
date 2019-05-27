@@ -1,2 +1,7 @@
 #!/bin/bash
-feh -. -x -B black "$1"
+
+if [[ $# -eq 0 ]]; then
+	feh -. -x -B black
+else
+	feh -. -x -B black "$1"
+fi
