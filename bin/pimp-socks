@@ -19,6 +19,7 @@ usage: ${0##*/} [option]... user@host
     -h  --help            display help and exit
 
 EOF
+	exit 0
 }
 
 info() {
@@ -40,10 +41,6 @@ runsocks() {
 	info "SOCKS5 proxy is running on localhost:$PORT"
 	exit 0
 }
-
-if [[ $# -eq 0 ]]; then
-	usage
-fi
 
 PORT=1080
 
@@ -67,7 +64,7 @@ while [[ $# > 0 ]]; do
 		;;
 		*)
 			if [[ $arg == -* ]]; then
-				error "unsupported arguments"
+				usage
 			else
 				USERHOST=$arg
 				runsocks
@@ -76,3 +73,4 @@ while [[ $# > 0 ]]; do
 	esac
 done
 
+usage

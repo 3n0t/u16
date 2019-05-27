@@ -17,6 +17,7 @@ usage: ${0##*/}
     -h  --help            display help and exit
 
 EOF
+	exit 0
 }
 
 error() {
@@ -36,7 +37,7 @@ while [[ $# > 0 ]]; do
 			usage
 		;;
 		*)
-			error "unsupported arguments"
+			usage
 		;;
 	esac
 done
